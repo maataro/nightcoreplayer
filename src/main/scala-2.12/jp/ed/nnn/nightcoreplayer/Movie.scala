@@ -25,8 +25,8 @@ class Movie {
 
   def canEqual(other: Any): Boolean = other.isInstanceOf[Movie]
 
-  // この 2 つのメソッド equals, hashCode は、
-  // ハッシュ関数を内部的に利用するコレクションや、 同値性を判断するのに利用される
+  //  IntelliJ IDEA が id という属性を元に自動的に生成した、 equals と hashcode メソッド
+  // この 2 つのメソッド は、ハッシュ関数を内部的に利用するコレクションや、 同値性を判断するのに利用される
   override def equals(other: Any): Boolean = other match {
     case that: Movie =>
       (that canEqual this) &&

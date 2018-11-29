@@ -4,9 +4,11 @@ import java.io.File
 
 import javafx.application.Application
 import javafx.beans.value.{ChangeListener, ObservableValue}
+import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Scene
-import javafx.scene.control.Label
+import javafx.scene.control.cell.PropertyValueFactory
+import javafx.scene.control.{Label, TableColumn, TableView}
 import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.media.{Media, MediaPlayer, MediaView}
 import javafx.scene.paint.Color
@@ -26,6 +28,7 @@ class Main extends Application {
   private[this] val mediaViewFitWidth = 800
   private[this] val mediaViewFitHeight = 450
   private[this] val toolBarMinHeight = 50
+  private[this] val tableMinWidth = 300   // テーブルの最小の横幅を定数として宣言
 
   override def start(primaryStage: Stage): Unit = {
     val path = "\\Users\\Maatarou\\workspace\\download\\video.mp4"
@@ -51,19 +54,46 @@ class Main extends Application {
     toolBar.setMinHeight(toolBarMinHeight)
     toolBar.setAlignment(Pos.CENTER)    // ツールバーにおける整列を中央寄せにする
     toolBar.setStyle("-fx-background-color: Black") // ツールバーにスタイルシートを提供して背景色を黒に設定
+
+    val tableView = new TableView[Movie]()  // UIコンポーネントTableView のインスタンスを作成
+    tableView.setMinWidth(tableMinWidth)    // 最小の横幅を設定
+    // FXCollections.observableArrayList メソッドにより オブザーバブルな配列が取得される
+    //この ObservableList は、リスナーをつけることができる、コレクションのインタフェース
+    val movies = FXCollections.observableArrayList[Movie]()
+    tableView.setItems(movies)  // オブザーバブルな空配列のインスタンスを取得し、TableView のインスタンスに設定
+
+    // この ObservableList は内容が変化すると、オブザーバーパターンの仕組みを利用して、
+    // 自動的に TableView に変更を通知して GUI とモデルが同期するようになっています。
+
+    // テーブルのカラムを作成
+    val fileNameColumn = new TableColumn[Movie, String]("ファイル名")
+    // JavaBeans 形式でモデルを用意した場合、属性名を指定するだけで、 setCellValueFactory メソッドを使うことで、
+    // 自動的にそのモデルの値を取得できるようにすることができる
+    fileNameColumn.setCellValueFactory(new PropertyValueFactory("fileName"))
+    fileNameColumn.setPrefWidth(160)
+    val timeColumn = new TableColumn[Movie, String]("時間")
+    timeColumn.setCellValueFactory(new PropertyValueFactory("time"))
+    timeColumn.setPrefWidth(80)
+
+    tableView.getColumns.setAll(fileNameColumn, timeColumn)
+
+    // TODO 後で消す
+    movies.addAll(Movie(1L, "movie.mp4", "00:00:00", "./movie.mp4", null))
+
     val baseBorderPane = new BorderPane()  // BorderPane クラスは、レイアウトを行うことができる部品
     baseBorderPane.setStyle("-fx-background-color: Black")  // JavaFX の CSS のスタイル表記で背景色を黒にするというスタイル指定
     baseBorderPane.setCenter(mediaView)     //  BorderPane クラスの中央に mediaView をレイアウト
     baseBorderPane.setBottom(toolBar)       // ツールバーがMediaViewエリアの下側にレイアウトされる
+    baseBorderPane.setRight(tableView)      // baseBorderPane の右側に TableView のインスタンスをレイアウト
 
     // ウィンドウの大きさを指定して、その Scene に含める JavaFX の Node を指定してインスタンス化
-    val scene = new Scene(baseBorderPane, mediaViewFitWidth, mediaViewFitHeight + toolBarMinHeight)
+    val scene = new Scene(baseBorderPane, mediaViewFitWidth + tableMinWidth, mediaViewFitHeight + toolBarMinHeight)
     scene.setFill(Color.BLACK)  //  Scene では、背景も設定することができる
 
     // オブザーバーパターンの仕組みを応用した仕組み
     // bind: 対象に変化があった場合、指定した値の変化に自動的に追従するリスナーを追加してくれるメソッド
     // 内部的にはリスナーオブジェクトが、 Scene の widthProperty につけられることによって実現
-    mediaView.fitWidthProperty().bind(scene.widthProperty())  // //  Scene の幅に変更があった際に、自動的に MediaView の幅に追従するようにする処理
+    mediaView.fitWidthProperty().bind(scene.widthProperty().subtract(tableMinWidth))  // //  Scene の幅に変更があった際に、自動的に MediaView の幅に追従するようにする処理
     mediaView.fitHeightProperty().bind(scene.heightProperty().subtract(toolBarMinHeight))
 
     primaryStage.setScene(scene) // Stage クラスは、最上位の JavaFX のコンテナで、 Scene を格納することができる。
