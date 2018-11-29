@@ -5,10 +5,12 @@ import java.io.File
 import javafx.application.Application
 import javafx.beans.value.{ChangeListener, ObservableValue}
 import javafx.collections.FXCollections
+import javafx.event.EventHandler
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.control.{Label, TableColumn, TableView}
+import javafx.scene.input.{DragEvent, TransferMode}
 import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.media.{Media, MediaPlayer, MediaView}
 import javafx.scene.paint.Color
@@ -72,13 +74,13 @@ class Main extends Application {
     fileNameColumn.setCellValueFactory(new PropertyValueFactory("fileName"))
     fileNameColumn.setPrefWidth(160)
     val timeColumn = new TableColumn[Movie, String]("時間")
+    // Movieからtimeプロパティを取得するコールバック関数をセット
     timeColumn.setCellValueFactory(new PropertyValueFactory("time"))
     timeColumn.setPrefWidth(80)
 
     tableView.getColumns.setAll(fileNameColumn, timeColumn)
 
-    // TODO 後で消す
-    movies.addAll(Movie(1L, "movie.mp4", "00:00:00", "./movie.mp4", null))
+
 
     val baseBorderPane = new BorderPane()  // BorderPane クラスは、レイアウトを行うことができる部品
     baseBorderPane.setStyle("-fx-background-color: Black")  // JavaFX の CSS のスタイル表記で背景色を黒にするというスタイル指定
@@ -96,19 +98,51 @@ class Main extends Application {
     mediaView.fitWidthProperty().bind(scene.widthProperty().subtract(tableMinWidth))  // //  Scene の幅に変更があった際に、自動的に MediaView の幅に追従するようにする処理
     mediaView.fitHeightProperty().bind(scene.heightProperty().subtract(toolBarMinHeight))
 
+    scene.setOnDragOver(new EventHandler[DragEvent] {
+      override def handle(event: DragEvent): Unit = {
+        if (event.getGestureSource != scene &&
+          event.getDragboard.hasFiles) {
+          event.acceptTransferModes(TransferMode.COPY_OR_MOVE: _*)
+        }
+        event.consume()
+      }
+    })
+
+    scene.setOnDragDropped(new EventHandler[DragEvent] {
+      override def handle(event: DragEvent): Unit = {
+        val db = event.getDragboard
+        if (db.hasFiles) {
+          db.getFiles.toArray(Array[File]()).toSeq.foreach { f =>
+            val filePath = f.getAbsolutePath
+            val fileName = f.getName
+            val media = new Media(f.toURI.toString)
+            val time = formatTime(media.getDuration)
+            val movie = Movie(System.currentTimeMillis(), fileName, time, filePath, media)
+            while (movies.contains(movie)) {  // movie同士のオブジェクトの同値性比較はidフィールドを使う
+              movie.setId(movie.getId + 1L)
+            }
+            movies.add(movie) // movies は ObservableList であるため、これによって自動的に TableView が変化する
+          }
+        }
+        event.consume()
+      }
+    })
+
+    primaryStage.setTitle("mp4ファイルをドラッグ&ドロップしてください")
+
     primaryStage.setScene(scene) // Stage クラスは、最上位の JavaFX のコンテナで、 Scene を格納することができる。
     primaryStage.show() // 見えるようにするための show メソッド
   }
 
-  private[this] def formatTime(elapsed: Duration, duration: Duration): String = {
+  private[this] def formatTime(elapsed: Duration): String = {
     // Durationはミリセカンド秒、${再生時間}:${再生分}:${再生秒}/${全体時間}:${全体分}:${全体秒}
-    "%02d:%02d:%02d/%02d:%02d:%02d".format(
+    "%02d:%02d:%02d".format(
       elapsed.toHours.toInt,
       elapsed.toMinutes.toInt % 60,
-      elapsed.toSeconds.toInt % 60,
-      duration.toHours.toInt,
-      duration.toHours.toInt % 60,
-      duration.toSeconds.toInt % 60)
+      elapsed.toSeconds.toInt % 60
+    )
   }
 
+  private[this] def formatTime(elapsed: Duration, duration: Duration): String =
+    s"${formatTime(elapsed)}/${formatTime(duration)}"
 }

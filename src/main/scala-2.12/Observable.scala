@@ -25,7 +25,7 @@ object Observable {   // mediaPlayer
 
   // mediaPlayerのaddListenerメソッド
   // 引数で渡されたリスナーを Observable が持つシーケンスに追加
-  def addListener(listener: Listener) = listeners = listeners :+ listener
+  def addListener(listener: Listener): Unit = listeners = listeners :+ listener
 
 }
 
