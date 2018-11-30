@@ -7,7 +7,7 @@ import scala.beans.BeanProperty
 class Movie {
 
   // @BeanPropertyはアノテーション
-  //  getter (ゲッター) と setter (セッター) を自動で追加してくれる
+  //  @BeanPropertyを付けることで、getter (ゲッター) と setter (セッター) を自動で追加してくれる
   @BeanProperty
   var id: Long = _
 
@@ -43,7 +43,7 @@ class Movie {
 object Movie {
 
   // コンパニオンオブジェクトを利用したファクトリメソッド
-  // BeanPropertyアノテーションにより追加されたセッターメソッドによりフィールドに値をセットしている
+  // BeanPropertyアノテーションにより自動的に追加されたセッターメソッドを使ってフィールドに値をセットしている
   def apply(id: Long, fileName: String, time: String, filePath: String, media: Media): Movie = {
     val movie = new Movie
     movie.setId(id)

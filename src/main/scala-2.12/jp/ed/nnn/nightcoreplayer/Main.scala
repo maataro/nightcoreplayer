@@ -9,13 +9,13 @@ import javafx.event.EventHandler
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.cell.PropertyValueFactory
-import javafx.scene.control.{Label, TableColumn, TableView}
-import javafx.scene.input.{DragEvent, TransferMode}
+import javafx.scene.control.{Label, TableColumn, TableRow, TableView}
+import javafx.scene.input.{DragEvent, MouseEvent, TransferMode}
 import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.media.{Media, MediaPlayer, MediaView}
 import javafx.scene.paint.Color
 import javafx.stage.Stage
-import javafx.util.Duration
+import javafx.util.{Callback, Duration}
 
 object Main extends App { //  Scala のアプリケーションとして実行するために、 App トレイトをミックスイン
   // App トレイトのフィールドであるargs という Array[String] という型の変数を
@@ -33,25 +33,27 @@ class Main extends Application {
   private[this] val tableMinWidth = 300   // テーブルの最小の横幅を定数として宣言
 
   override def start(primaryStage: Stage): Unit = {
-    val path = "\\Users\\Maatarou\\workspace\\download\\video.mp4"
-    val media = new Media(new File(path).toURI.toString)  // Media は再生するメディアファイルを表すクラス
-    val mediaPlayer = new MediaPlayer(media)    // MediaPlayer はメディアを再生するためのクラス
-    mediaPlayer.setRate(1.25)  // プレイヤーでの再生速度を 1.25 倍に設定(Nightcore プレイヤーの要件)
-    mediaPlayer.play()         // プレイヤーの再生
-    val mediaView = new MediaView(mediaPlayer) // 実際に映像を表示するインスタンス
+//    val path = "\\Users\\Maatarou\\workspace\\download\\video.mp4"
+//    val media = new Media(new File(path).toURI.toString)  // Media は再生するメディアファイルを表すクラス
+//    val mediaPlayer = new MediaPlayer(media)    // MediaPlayer はメディアを再生するためのクラス
+//    mediaPlayer.setRate(1.25)  // プレイヤーでの再生速度を 1.25 倍に設定(Nightcore プレイヤーの要件)
+//    mediaPlayer.play()         // プレイヤーの再生
+//    val mediaView = new MediaView(mediaPlayer) // 実際に映像を表示するインスタンス
+    val mediaView = new MediaView()
 
     val timeLabel = new Label()
+    timeLabel.setText("00:00:00/00:00:00")
     timeLabel.setTextFill(Color.WHITE)  // ラベルのテキストの色を変更
     // mediaPlayer オブジェクトに匿名内部クラスとしてリスナーオブジェクトを追加
-    mediaPlayer.currentTimeProperty().addListener(new ChangeListener[Duration]{  // 変化を監視するためのオブジェクトを追加
-      // ChangeListenerのchangeメソッドはmediaPlayer内の何かしらのメソッドにより、適切な引数を渡して呼び出される
-      override def changed(observable: ObservableValue[_ <: Duration], oldValue: Duration, newValue: Duration): Unit =
-        timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
-    })
-    mediaPlayer.setOnReady(new Runnable {
-      override def run(): Unit =
-        timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
-    })
+//    mediaPlayer.currentTimeProperty().addListener(new ChangeListener[Duration]{  // 変化を監視するためのオブジェクトを追加
+//      // ChangeListenerのchangeメソッドはmediaPlayer内の何かしらのメソッドにより、適切な引数を渡して呼び出される
+//      override def changed(observable: ObservableValue[_ <: Duration], oldValue: Duration, newValue: Duration): Unit =
+//        timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
+//    })
+//    mediaPlayer.setOnReady(new Runnable {
+//      override def run(): Unit =
+//        timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
+//    })
     val toolBar = new HBox(timeLabel)  // HBoxは、単一の水平行に子をレイアウトする
     toolBar.setMinHeight(toolBarMinHeight)
     toolBar.setAlignment(Pos.CENTER)    // ツールバーにおける整列を中央寄せにする
@@ -63,6 +65,21 @@ class Main extends Application {
     //この ObservableList は、リスナーをつけることができる、コレクションのインタフェース
     val movies = FXCollections.observableArrayList[Movie]()
     tableView.setItems(movies)  // オブザーバブルな空配列のインスタンスを取得し、TableView のインスタンスに設定
+
+    // setRowFactoryメソッドで、テーブルの行をUIとして生成
+    tableView.setRowFactory(new Callback[TableView[Movie], TableRow[Movie]]() {
+      override def call(param: TableView[Movie]): TableRow[Movie] = {
+        val row = new TableRow[Movie]()
+        row.setOnMouseClicked(new EventHandler[MouseEvent] {
+          override def handle(event: MouseEvent): Unit = {
+            if (event.getClickCount >= 1 && !row.isEmpty) {
+              playMovie(row.getItem, mediaView, timeLabel)
+            }
+          }
+        })
+        row
+      }
+    })
 
     // この ObservableList は内容が変化すると、オブザーバーパターンの仕組みを利用して、
     // 自動的に TableView に変更を通知して GUI とモデルが同期するようになっています。
@@ -132,6 +149,28 @@ class Main extends Application {
 
     primaryStage.setScene(scene) // Stage クラスは、最上位の JavaFX のコンテナで、 Scene を格納することができる。
     primaryStage.show() // 見えるようにするための show メソッド
+  }
+
+  private[this] def playMovie(movie: Movie, mediaView: MediaView, timeLabel: Label): Unit = {
+    if (mediaView.getMediaPlayer != null) {
+      val oldPlayer = mediaView.getMediaPlayer
+      oldPlayer.stop()
+      oldPlayer.dispose()
+    }
+
+    val mediaPlayer = new MediaPlayer(movie.media)
+    mediaPlayer.currentTimeProperty().addListener(new ChangeListener[Duration] {
+      override def changed(observable: ObservableValue[_ <: Duration], oldValue: Duration, newValue: Duration): Unit =
+        timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
+    })
+    mediaPlayer.setOnReady(new Runnable {
+      override def run(): Unit =
+        timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
+    })
+
+    mediaView.setMediaPlayer(mediaPlayer)
+    mediaPlayer.setRate(1.25)
+    mediaPlayer.play()
   }
 
   private[this] def formatTime(elapsed: Duration): String = {
