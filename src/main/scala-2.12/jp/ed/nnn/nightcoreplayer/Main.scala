@@ -73,7 +73,7 @@ class Main extends Application {
         row.setOnMouseClicked(new EventHandler[MouseEvent] {
           override def handle(event: MouseEvent): Unit = {
             if (event.getClickCount >= 1 && !row.isEmpty) {
-              playMovie(row.getItem, mediaView, timeLabel)
+              playMovie(row.getItem, tableView, mediaView, timeLabel)
             }
           }
         })
@@ -125,6 +125,7 @@ class Main extends Application {
       }
     })
 
+
     scene.setOnDragDropped(new EventHandler[DragEvent] {
       override def handle(event: DragEvent): Unit = {
         val db = event.getDragboard
@@ -151,7 +152,7 @@ class Main extends Application {
     primaryStage.show() // 見えるようにするための show メソッド
   }
 
-  private[this] def playMovie(movie: Movie, mediaView: MediaView, timeLabel: Label): Unit = {
+  private[this] def playMovie(movie: Movie, tableView: TableView[Movie], mediaView: MediaView, timeLabel: Label): Unit = {
     if (mediaView.getMediaPlayer != null) {
       val oldPlayer = mediaView.getMediaPlayer
       oldPlayer.stop()
@@ -167,10 +168,26 @@ class Main extends Application {
       override def run(): Unit =
         timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
     })
+    // 現在のファイルの再生が終了したら、次のファイルの再生
+    mediaPlayer.setOnEndOfMedia(new Runnable {
+      override def run(): Unit = playNext(tableView, mediaView, timeLabel)
+    })
 
     mediaView.setMediaPlayer(mediaPlayer)
     mediaPlayer.setRate(1.25)
+    //mediaPlayer.setCycleCount(MediaPlayer.INDEFINITE)  // 同じ曲を無限にループ再生する
     mediaPlayer.play()
+  }
+
+  // テーブルの中の映像ファイルのリストをループ再生する
+  private[this] def playNext(tableView: TableView[Movie], mediaView: MediaView, timeLabel: Label): Unit = {
+    val selectionModel = tableView.getSelectionModel
+    if (selectionModel.isEmpty) return
+    val index = selectionModel.getSelectedIndex
+    val nextIndex = (index + 1) % tableView.getItems.size()
+    selectionModel.select(nextIndex)
+    val movie = selectionModel.getSelectedItem
+    playMovie(movie, tableView, mediaView, timeLabel)
   }
 
   private[this] def formatTime(elapsed: Duration): String = {
