@@ -94,6 +94,30 @@ class Main extends Application {
 
     tableView.getColumns.setAll(fileNameColumn, timeColumn, deleteActionColumn)
 
+    // back button
+    val backButtonImage = new Image(getClass.getResourceAsStream("back.png"))
+    val backButton = new Button()
+    backButton.setGraphic(new ImageView(backButtonImage))
+    backButton.setStyle("-fx-background-color: Black")
+    // 10 秒だけ後ろに戻して再生するように実装
+    backButton.setOnAction(new EventHandler[ActionEvent]() {
+      override def handle(event: ActionEvent): Unit =
+        if (mediaView.getMediaPlayer != null) {
+          mediaView.getMediaPlayer.seek(
+            mediaView.getMediaPlayer.getCurrentTime.subtract(new Duration(10000)))
+        }
+    })
+    backButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        backButton.setStyle("-fx-body-color: Black")
+      }
+    })
+    backButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        backButton.setStyle("-fx-background-color: Black")
+      }
+    })
+
     // play button
     val playButtonImage = new Image(getClass.getResourceAsStream("play.png"))
     val playButton = new Button()
@@ -140,7 +164,30 @@ class Main extends Application {
       }
     })
 
-    toolBar.getChildren.addAll(playButton, pauseButton, timeLabel)
+    // forward button
+    val forwardButtonImage = new Image(getClass.getResourceAsStream("forward.png"))
+    val forwardButton = new Button()
+    forwardButton.setGraphic(new ImageView(forwardButtonImage))
+    forwardButton.setStyle("-fx-background-color: Black")
+    forwardButton.setOnAction(new EventHandler[ActionEvent]() {
+      override def handle(event: ActionEvent): Unit =
+        if (mediaView.getMediaPlayer != null) {
+          mediaView.getMediaPlayer.seek(
+            mediaView.getMediaPlayer.getCurrentTime.add(new Duration(10000)))
+        }
+    })
+    forwardButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        forwardButton.setStyle("-fx-body-color: Black")
+      }
+    })
+    forwardButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        forwardButton.setStyle("-fx-background-color: Black")
+      }
+    })
+
+    toolBar.getChildren.addAll(backButton, playButton, pauseButton, forwardButton, timeLabel)
 
     val baseBorderPane = new BorderPane()  // BorderPane クラスは、レイアウトを行うことができる部品
     baseBorderPane.setStyle("-fx-background-color: Black")  // JavaFX の CSS のスタイル表記で背景色を黒にするというスタイル指定
