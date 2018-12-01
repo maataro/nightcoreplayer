@@ -9,7 +9,7 @@ import javafx.event.EventHandler
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.cell.PropertyValueFactory
-import javafx.scene.control.{Label, TableColumn, TableRow, TableView}
+import javafx.scene.control._
 import javafx.scene.input.{DragEvent, MouseEvent, TransferMode}
 import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.media.{Media, MediaPlayer, MediaView}
@@ -33,27 +33,13 @@ class Main extends Application {
   private[this] val tableMinWidth = 300   // テーブルの最小の横幅を定数として宣言
 
   override def start(primaryStage: Stage): Unit = {
-//    val path = "\\Users\\Maatarou\\workspace\\download\\video.mp4"
-//    val media = new Media(new File(path).toURI.toString)  // Media は再生するメディアファイルを表すクラス
-//    val mediaPlayer = new MediaPlayer(media)    // MediaPlayer はメディアを再生するためのクラス
-//    mediaPlayer.setRate(1.25)  // プレイヤーでの再生速度を 1.25 倍に設定(Nightcore プレイヤーの要件)
-//    mediaPlayer.play()         // プレイヤーの再生
-//    val mediaView = new MediaView(mediaPlayer) // 実際に映像を表示するインスタンス
+
     val mediaView = new MediaView()
 
     val timeLabel = new Label()
     timeLabel.setText("00:00:00/00:00:00")
     timeLabel.setTextFill(Color.WHITE)  // ラベルのテキストの色を変更
-    // mediaPlayer オブジェクトに匿名内部クラスとしてリスナーオブジェクトを追加
-//    mediaPlayer.currentTimeProperty().addListener(new ChangeListener[Duration]{  // 変化を監視するためのオブジェクトを追加
-//      // ChangeListenerのchangeメソッドはmediaPlayer内の何かしらのメソッドにより、適切な引数を渡して呼び出される
-//      override def changed(observable: ObservableValue[_ <: Duration], oldValue: Duration, newValue: Duration): Unit =
-//        timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
-//    })
-//    mediaPlayer.setOnReady(new Runnable {
-//      override def run(): Unit =
-//        timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
-//    })
+
     val toolBar = new HBox(timeLabel)  // HBoxは、単一の水平行に子をレイアウトする
     toolBar.setMinHeight(toolBarMinHeight)
     toolBar.setAlignment(Pos.CENTER)    // ツールバーにおける整列を中央寄せにする
@@ -95,9 +81,16 @@ class Main extends Application {
     timeColumn.setCellValueFactory(new PropertyValueFactory("time"))
     timeColumn.setPrefWidth(80)
 
-    tableView.getColumns.setAll(fileNameColumn, timeColumn)
+    val deleteActionColumn = new TableColumn[Movie, Long]("削除")
+    deleteActionColumn.setCellValueFactory(new PropertyValueFactory("id"))
+    deleteActionColumn.setPrefWidth(60)
+    deleteActionColumn.setCellFactory(new Callback[TableColumn[Movie, Long], TableCell[Movie, Long]]() {
+      override def call(param: TableColumn[Movie, Long]): TableCell[Movie, Long] = {
+        new DeleteCell(movies, mediaView, tableView)
+      }
+    })
 
-
+    tableView.getColumns.setAll(fileNameColumn, timeColumn, deleteActionColumn)
 
     val baseBorderPane = new BorderPane()  // BorderPane クラスは、レイアウトを行うことができる部品
     baseBorderPane.setStyle("-fx-background-color: Black")  // JavaFX の CSS のスタイル表記で背景色を黒にするというスタイル指定
@@ -134,12 +127,23 @@ class Main extends Application {
             val filePath = f.getAbsolutePath
             val fileName = f.getName
             val media = new Media(f.toURI.toString)
-            val time = formatTime(media.getDuration)
-            val movie = Movie(System.currentTimeMillis(), fileName, time, filePath, media)
-            while (movies.contains(movie)) {  // movie同士のオブジェクトの同値性比較はidフィールドを使う
-              movie.setId(movie.getId + 1L)
-            }
-            movies.add(movie) // movies は ObservableList であるため、これによって自動的に TableView が変化する
+
+            // テーブルビューのファイルの時間カラムに正しい合計時間が表示されるようにする実装
+
+            // 一度 Media のインスタンスを MediaPlayer に読み込ませることで、
+            // Media の getDuration で正しい Duration のインスタンスを取得できるようになる
+            val player = new MediaPlayer(media)
+            player.setOnReady(new Runnable {
+              override def run(): Unit = {
+                val time = formatTime(media.getDuration)
+                val movie = Movie(System.currentTimeMillis(), fileName, time, filePath, media)
+                while (movies.contains(movie)) {  // movie同士のオブジェクトの同値性比較はidフィールドを使う
+                  movie.setId(movie.getId + 1L)
+                }
+                movies.add(movie) // movies は ObservableList であるため、これによって自動的に TableView が変化する
+                player.dispose()
+              }
+            })
           }
         }
         event.consume()
@@ -199,6 +203,12 @@ class Main extends Application {
     )
   }
 
+  private[this] def onTableButtonClick(selected: Movie): Unit = {
+    println("削除されました")
+  }
+
   private[this] def formatTime(elapsed: Duration, duration: Duration): String =
     s"${formatTime(elapsed)}/${formatTime(duration)}"
 }
+
+
