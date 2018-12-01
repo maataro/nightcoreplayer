@@ -5,11 +5,12 @@ import java.io.File
 import javafx.application.Application
 import javafx.beans.value.{ChangeListener, ObservableValue}
 import javafx.collections.FXCollections
-import javafx.event.EventHandler
+import javafx.event.{ActionEvent, EventHandler}
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.control._
+import javafx.scene.image.{Image, ImageView}
 import javafx.scene.input.{DragEvent, MouseEvent, TransferMode}
 import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.media.{Media, MediaPlayer, MediaView}
@@ -40,7 +41,8 @@ class Main extends Application {
     timeLabel.setText("00:00:00/00:00:00")
     timeLabel.setTextFill(Color.WHITE)  // ラベルのテキストの色を変更
 
-    val toolBar = new HBox(timeLabel)  // HBoxは、単一の水平行に子をレイアウトする
+
+    val toolBar = new HBox()  // HBoxは、単一の水平行に子をレイアウトする
     toolBar.setMinHeight(toolBarMinHeight)
     toolBar.setAlignment(Pos.CENTER)    // ツールバーにおける整列を中央寄せにする
     toolBar.setStyle("-fx-background-color: Black") // ツールバーにスタイルシートを提供して背景色を黒に設定
@@ -91,6 +93,54 @@ class Main extends Application {
     })
 
     tableView.getColumns.setAll(fileNameColumn, timeColumn, deleteActionColumn)
+
+    // play button
+    val playButtonImage = new Image(getClass.getResourceAsStream("play.png"))
+    val playButton = new Button()
+    playButton.setGraphic(new ImageView(playButtonImage))
+    playButton.setStyle("-fx-background-color: Black")
+    // 再生ボタンが押された時の処理
+    playButton.setOnAction(new EventHandler[ActionEvent]() {
+      override def handle(event: ActionEvent): Unit = {
+        val selectionModel = tableView.getSelectionModel  // TableVeiw から SelectionModel という選択を管理するモデルを取得
+        if (mediaView.getMediaPlayer != null && !selectionModel.isEmpty) {
+          mediaView.getMediaPlayer.play()
+        }
+      }
+    })
+    playButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        playButton.setStyle("-fx-body-color: Black")
+      }
+    })
+    playButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        playButton.setStyle("-fx-background-color: Black")
+      }
+    })
+
+    // pause button
+    val pauseButtonImage = new Image(getClass.getResourceAsStream("pause.png"))
+    val pauseButton = new Button()
+    pauseButton.setGraphic(new ImageView(pauseButtonImage))
+    pauseButton.setStyle("-fx-background-color: Black")
+    pauseButton.setOnAction(new EventHandler[ActionEvent]() {
+      override def handle(event: ActionEvent): Unit = {
+        if (mediaView.getMediaPlayer != null) mediaView.getMediaPlayer.pause()
+      }
+    })
+    pauseButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        pauseButton.setStyle("-fx-body-color: Black")
+      }
+    })
+    pauseButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        pauseButton.setStyle("-fx-background-color: Black")
+      }
+    })
+
+    toolBar.getChildren.addAll(playButton, pauseButton, timeLabel)
 
     val baseBorderPane = new BorderPane()  // BorderPane クラスは、レイアウトを行うことができる部品
     baseBorderPane.setStyle("-fx-background-color: Black")  // JavaFX の CSS のスタイル表記で背景色を黒にするというスタイル指定
