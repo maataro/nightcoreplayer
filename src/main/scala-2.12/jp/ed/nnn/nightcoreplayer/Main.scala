@@ -173,47 +173,10 @@ class Main extends Application {
     mediaView.fitWidthProperty().bind(scene.widthProperty().subtract(tableMinWidth))  // //  Scene の幅に変更があった際に、自動的に MediaView の幅に追従するようにする処理
     mediaView.fitHeightProperty().bind(scene.heightProperty().subtract(toolBarMinHeight))
 
-    scene.setOnDragOver(new EventHandler[DragEvent] {
-      override def handle(event: DragEvent): Unit = {
-        if (event.getGestureSource != scene &&
-          event.getDragboard.hasFiles) {
-          event.acceptTransferModes(TransferMode.COPY_OR_MOVE: _*)
-        }
-        event.consume()
-      }
-    })
+    // リファクタリング：匿名内部クラスをクラスにした
+    scene.setOnDragOver(new MovieFileDragOverEventHandler(scene))
+    scene.setOnDragDropped(new MovieFileDragDroppedEventHandler(movies))
 
-
-    scene.setOnDragDropped(new EventHandler[DragEvent] {
-      override def handle(event: DragEvent): Unit = {
-        val db = event.getDragboard
-        if (db.hasFiles) {
-          db.getFiles.toArray(Array[File]()).toSeq.foreach { f =>
-            val filePath = f.getAbsolutePath
-            val fileName = f.getName
-            val media = new Media(f.toURI.toString)
-
-            // テーブルビューのファイルの時間カラムに正しい合計時間が表示されるようにする実装
-
-            // 一度 Media のインスタンスを MediaPlayer に読み込ませることで、
-            // Media の getDuration で正しい Duration のインスタンスを取得できるようになる
-            val player = new MediaPlayer(media)
-            player.setOnReady(new Runnable {
-              override def run(): Unit = {
-                val time = formatTime(media.getDuration)
-                val movie = Movie(System.currentTimeMillis(), fileName, time, filePath, media)
-                while (movies.contains(movie)) {  // movie同士のオブジェクトの同値性比較はidフィールドを使う
-                  movie.setId(movie.getId + 1L)
-                }
-                movies.add(movie) // movies は ObservableList であるため、これによって自動的に TableView が変化する
-                player.dispose()
-              }
-            })
-          }
-        }
-        event.consume()
-      }
-    })
 
     primaryStage.setTitle("mp4ファイルをドラッグ&ドロップしてください")
 
@@ -298,21 +261,10 @@ class Main extends Application {
     playAt(Next, tableView, mediaView, timeLabel)
   }
 
-  private[this] def formatTime(elapsed: Duration): String = {
-    // Durationはミリセカンド秒、${再生時間}:${再生分}:${再生秒}/${全体時間}:${全体分}:${全体秒}
-    "%02d:%02d:%02d".format(
-      elapsed.toHours.toInt,
-      elapsed.toMinutes.toInt % 60,
-      elapsed.toSeconds.toInt % 60
-    )
-  }
+//  private[this] def onTableButtonClick(selected: Movie): Unit = {
+//    println("削除されました")
+//  }
 
-  private[this] def onTableButtonClick(selected: Movie): Unit = {
-    println("削除されました")
-  }
-
-  private[this] def formatTime(elapsed: Duration, duration: Duration): String =
-    s"${formatTime(elapsed)}/${formatTime(duration)}"
 }
 
 
