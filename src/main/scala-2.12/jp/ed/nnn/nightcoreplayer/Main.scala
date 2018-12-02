@@ -141,8 +141,8 @@ class Main extends Application {
     })
 
     // play button
-    val playButtonImage = new Image(getClass.getResourceAsStream("play.png"))
-    val playButton = new Button()
+    val playButtonImage = new Image(getClass.getResourceAsStream("play.png"))  // 画像のインスタンスを作成
+    val playButton = new Button()                         // Button のインスタンスを作成
     playButton.setGraphic(new ImageView(playButtonImage))
     playButton.setStyle("-fx-background-color: Black")
     // 再生ボタンが押された時の処理
@@ -231,9 +231,28 @@ class Main extends Application {
       }
     })
 
+    // fullscreen button
+    val fullscreenButtonImage = new Image(getClass.getResourceAsStream("fullscreen.png"))
+    val fullscreenButton = new Button()
+    fullscreenButton.setGraphic(new ImageView(fullscreenButtonImage))
+    fullscreenButton.setStyle("-fx-background-color: Black")
+    fullscreenButton.setOnAction(new EventHandler[ActionEvent]() {
+      override def handle(event: ActionEvent): Unit =
+        primaryStage.setFullScreen(true)
+    })
+    fullscreenButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        fullscreenButton.setStyle("-fx-body-color: Black")
+      }
+    })
+    fullscreenButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler[MouseEvent]() {
+      override def handle(event: MouseEvent): Unit = {
+        fullscreenButton.setStyle("-fx-background-color: Black")
+      }
+    })
 
     toolBar.getChildren.addAll(
-      firstButton, backButton, playButton, pauseButton, forwardButton, lastButton, timeLabel)
+      firstButton, backButton, playButton, pauseButton, forwardButton, lastButton, fullscreenButton, timeLabel)
 
     val baseBorderPane = new BorderPane()  // BorderPane クラスは、レイアウトを行うことができる部品
     baseBorderPane.setStyle("-fx-background-color: Black")  // JavaFX の CSS のスタイル表記で背景色を黒にするというスタイル指定
@@ -326,6 +345,7 @@ class Main extends Application {
     mediaPlayer.play()
   }
 
+  // ひとつ前のファイルを再生する
   private[this] def playPre(tableView: TableView[Movie], mediaView: MediaView, timeLabel: Label): Unit = {
     val selectionModel = tableView.getSelectionModel
     if (selectionModel.isEmpty) return
